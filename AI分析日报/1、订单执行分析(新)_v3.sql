@@ -1,11 +1,3 @@
-select 
-tt2.deptname,
-tt2.plannum, --计划项数
-tt2.ycgnum, --已采购项数
-tt2.zxbl, --执行比例
-tt2.yqxs, --逾期项数
-tt3.pjcgts --平均采购天数
- from (
 select
   tt1.deptname,
   count(tt1.pk_praybill_b) plannum, --计划项数
@@ -13,8 +5,8 @@ select
   round(sum(tt1.sfycg)/ count(tt1.pk_praybill_b)*100,2) zxbl,--执行比例
   sum(case when tt1.jhzxxhsj>tt1.jhzxzq then 1 else 0 end) yqxs, --逾期项数
   round(sum(case when tt1.jhzxxhsj>tt1.jhzxzq then 1 else 0 end)/count(tt1.pk_praybill_b)*100,2) yqbl, --逾期比例
-  --round(sum(jhzxxhsj)/count(tt1.pk_praybill_b),2) pjcgts, --平均采购天数
-  yearmth
+  round(sum(jhzxxhsj)/count(tt1.pk_praybill_b),2) pjcgts, --平均采购天数
+  CURRENT_TIMESTAMP sjc --时间戳
 from
 (select
     distinct prb.pk_praybill_b,
@@ -24,7 +16,16 @@ from
       when dept.name = '辅料物资部' then '工程物资部' 
       else dept.name end deptname, --部门
     case when prb.naccumulatenum > 0 and orderb.forderstatus=3 then 1 else 0 end sfycg, --是否已采购
-   case when regexp_like(bdm.def6,'^-?\d+(\.\d+)?$') then to_number(bdm.def6) else 0 end as jhzxzq, --计划执行周期
+   /*case when regexp_like(bdm.def6,'^-?\d+(\.\d+)?$') then to_number(bdm.def6) else 0 end as jhzxzq,*/ --计划执行周期
+   case when org.name = '东风特种汽车有限公司'
+     then 
+         case when jhzq.sborg = '0001AZ100000004DDM1B' then jhzq.jhzxzq
+              when jhzq2.sborg = '0001AZ100000004DDM1B' then jhzq2.jhzxzq
+         else nvl(gysjmb.jhzxzq, '15') 
+         end
+     else 
+         nvl(coalesce(jhzq.jhzxzq, jhzq2.jhzxzq, null), 999) --如果没有计划执行周期，就无期限
+     end as jhzxzq, --计划执行周期
    to_date(nvl(orderb.dealdate,to_char(sysdate,'yyyy-MM-dd HH24:MI:SS')),'yyyy-MM-dd HH24:MI:SS') -to_date(prh.dmakedate,'yyyy-MM-dd HH24:MI:SS') jhzxxhsj, --计划执行消耗时间
    acmonth.yearmth yearmth,
    acmonth_2.BEGINDATE
@@ -87,9 +88,35 @@ left join (select
               po_order.forderstatus
     )) where rnnum= 1) orderb
     on prb.pk_praybill_b = orderb.csourcebid
-
+left join (SELECT pk_defdoc, def1 as sborg, def4 wlfl, 
+       def3 wlbm, def6 jhzxzq
+       FROM bd_defdoc
+       WHERE pk_defdoclist = '1001AZ10000000PS4Z1T'
+       and dr = 0
+       and enablestate = 2
+       and def6 <> '~'
+       and def3 <> '~'
+) jhzq 
+  on prb.pk_srcmaterial = jhzq.wlbm
+left join (select pk_defdoc,sborg, wlfl, jhzxzq from V_gxh_jhzq2_WH
+) jhzq2 
+  on bdm.pk_marbasclass = jhzq2.wlfl
 left join org_stockorg org
      on prb.vbdef1 = org.pk_stockorg
+left join (
+     select a.pk_org, a.pk_supplier, a.pk_material, bdm.code,  a.nastorigtaxprice ,a.dvaliddate , '3' as jhzxzq,
+      row_number()over(partition by a.pk_supplier,bdm.code order by a.tcreatetime desc,a.dvaliddate desc)rn
+      from purp_supplierprice a
+      left join org_purchaseorg b
+      on a.pk_org = b.pk_purchaseorg
+      left join bd_supplier bds
+      on bds.pk_supplier = a.pk_supplier
+      left join bd_material bdm
+      on bdm.pk_material = a.pk_material
+      where a.dr = 0 
+      and a.pk_org = '0001AZ100000004DDM1B'  /*东风特种汽车有限公司*/
+      and to_char(sysdate,'yyyy-mm-dd hh24:mi:ss') between a.dvaliddate and a.dinvaliddate
+) gysjmb on prb.pk_srcmaterial = gysjmb.pk_material
 left join org_purchaseorg purchaseorg
 on prb.pk_purchaseorg = purchaseorg.pk_purchaseorg
 left join bd_accperiodmonth acmonth
@@ -117,8 +144,4 @@ where prb.dr = 0
   and purchaseorg.code !='9182' --过滤采购组织是9182的数据
 ) tt1
 where tt1.deptname not in('采购科','工程市场合同部','工程市场部','工程项目中心')
-group by deptname,yearmth
-) tt2
-left join WHH_V_pjcgtsjcsJ_WH tt3
-on tt2.deptname = tt3.deptname
-and tt2.yearmth = tt3.yearmth
+group by deptname

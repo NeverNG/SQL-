@@ -1,15 +1,4 @@
-select 
-  tt1.deptname, --采购部门
-  tt1.shouldnum, --应到货项数
-  tt1.icnum, --已到货项数
-  tt1.dhl,--物资到货率
-  tt1.yqdhnum,  --逾期到货项数
-  tt1.yqbl,--逾期比例
-  tt1.wdhnum, --未到货项数
-  tt2.pjdhts avgarrdays --平均天数
- from (
 select
-  YEARMTH,
   deptname, --采购部门
   shouldnum, --应到货项数
   icnum, --已到货项数
@@ -17,7 +6,8 @@ select
   yqdhnum,  --逾期到货项数
   yqbl,--逾期比例
   wdhnum, --未到货项数
-  avgarrdays --平均天数
+  avgarrdays, --平均天数
+  CURRENT_TIMESTAMP sjc --时间戳
 from
 (
 select YEARMTH,
@@ -73,39 +63,17 @@ select YEARMTH,
                       0
                    end) closenum,
                sum(CASE
-                     WHEN ((
-                 case
-                       /*when b.bstockclose = 'Y' and (b.naccumstorenum is null or b.naccumstorenum=0) */
-                       when nvl(b.naccumstorenum,0)=0
-                         then
-                         0
-                         else 
-                         case when icb.dbizdate is null then sysdate -  to_date(h.taudittime,'yyyy-MM-dd hh24:mi:ss') 
-                              else (to_date(icb.dbizdate, 'yyyy-MM-dd hh24:mi:ss')-  to_date(h.taudittime,'yyyy-MM-dd hh24:mi:ss')) 
-                         end 
-                  end
-                )<=(case when regexp_like(m.def15,'^-?\d+(\.\d+)?$') then to_number(m.def15) else 0 end)) THEN
-                      1
-                     ELSE
-                      0
-                   END) jsdhnum,
+                       WHEN SUBSTR(icb.dbizdate, 1, 10) <= SUBSTR(h.vdef7, 1, 10) THEN     /*入库日期<预计到货日期*/
+                        1
+                       ELSE
+                        0
+                     END) jsdhnum,
                sum(CASE
-                     WHEN ((
-                 case
-                       /*when b.bstockclose = 'Y' and (b.naccumstorenum is null or b.naccumstorenum=0) */
-                       when nvl(b.naccumstorenum,0)=0
-                         then
-                         0
-                         else 
-                         case when icb.dbizdate is null then sysdate -  to_date(h.taudittime,'yyyy-MM-dd hh24:mi:ss') 
-                              else (to_date(icb.dbizdate, 'yyyy-MM-dd hh24:mi:ss')-  to_date(h.taudittime,'yyyy-MM-dd hh24:mi:ss')) 
-                         end 
-                  end
-                )>(case when regexp_like(m.def15,'^-?\d+(\.\d+)?$') then to_number(m.def15) else 0 end)) THEN
-                      1
-                     ELSE
-                      0
-                   END) yqdhnum  --逾期到货项数
+                       WHEN SUBSTR(icb.dbizdate, 1, 10) > SUBSTR(h.vdef7, 1, 10) THEN     /*入库日期>预计到货日期*/
+                        1
+                       ELSE
+                        0
+                     END) yqdhnum  --逾期到货项数
           from po_order_b b
           left outer join po_order h
             on b.pk_order = h.pk_order
@@ -197,7 +165,6 @@ select YEARMTH,
                    0
                  end
                ) as arrdays,
-               
                /*sum(case
                      when bb.fonwaystatus = '2' and bb.isoperated = 'Y' then
                       1
@@ -212,35 +179,13 @@ select YEARMTH,
                       0
                    end) closenum,
                sum(CASE
-                     WHEN ((
-               case 
-                 /*when b.bstockclose = 'Y'*/
-                 when bb.fonwaystatus = '2' and bb.isoperated = 'Y'
-                 then 
-                   case when bb.dbilldate is null then sysdate -  to_date(h.taudittime,'yyyy-MM-dd hh24:mi:ss') 
-                        else (to_date(bb.dbilldate, 'yyyy-MM-dd hh24:mi:ss')-  to_date(h.taudittime,'yyyy-MM-dd hh24:mi:ss')) 
-                   end 
-                 else 
-                   0
-                 end
-               )<=(case when regexp_like(m.def15,'^-?\d+(\.\d+)?$') then to_number(m.def15) else 0 end)) THEN
+                     WHEN SUBSTR(bb.dbilldate, 1, 10) <= SUBSTR(h.vdef7, 1, 10) THEN
                       1
                      ELSE
                       0
                    END) jsdhnum,
                sum(CASE
-                     WHEN ((
-               case 
-                 /*when b.bstockclose = 'Y'*/
-                 when bb.fonwaystatus = '2' and bb.isoperated = 'Y'
-                 then 
-                   case when bb.dbilldate is null then sysdate -  to_date(h.taudittime,'yyyy-MM-dd hh24:mi:ss') 
-                        else (to_date(bb.dbilldate, 'yyyy-MM-dd hh24:mi:ss')-  to_date(h.taudittime,'yyyy-MM-dd hh24:mi:ss')) 
-                   end 
-                 else 
-                   0
-                 end
-               )>(case when regexp_like(m.def15,'^-?\d+(\.\d+)?$') then to_number(m.def15) else 0 end)) THEN
+                     WHEN SUBSTR(bb.dbilldate, 1, 10) > SUBSTR(h.vdef7, 1, 10) THEN
                       1
                      ELSE
                       0
@@ -311,7 +256,6 @@ select YEARMTH,
                    end
                end
                ) as arrdays,
-
                sum(case
                      when nvl(b.naccuminvoicenum,0)=0 then      /*改为累计开票主数量*/
                       0
@@ -325,33 +269,13 @@ select YEARMTH,
                       0
                    end) closenum,
                sum(CASE
-                     WHEN ((
-               case 
-                 /*when b.bstockclose = 'Y' */
-                 when nvl(b.naccuminvoicenum,0)=0
-                 then 0 
-                 else
-                   case when pob.dbilldate is null then sysdate -  to_date(h.taudittime,'yyyy-MM-dd hh24:mi:ss') 
-                        else (to_date(pob.dbilldate, 'yyyy-MM-dd hh24:mi:ss')-  to_date(h.taudittime,'yyyy-MM-dd hh24:mi:ss')) 
-                   end
-               end
-               )<=(case when regexp_like(m.def15,'^-?\d+(\.\d+)?$') then to_number(m.def15) else 0 end)) THEN
+                     WHEN SUBSTR(pob.dbilldate, 1, 10) <= SUBSTR(h.vdef7, 1, 10) THEN
                       1
                      ELSE
                       0
                    END) jsdhnum,
                sum(CASE
-                     WHEN ((
-               case 
-                 /*when b.bstockclose = 'Y' */
-                 when nvl(b.naccuminvoicenum,0)=0
-                 then 0 
-                 else
-                   case when pob.dbilldate is null then sysdate -  to_date(h.taudittime,'yyyy-MM-dd hh24:mi:ss') 
-                        else (to_date(pob.dbilldate, 'yyyy-MM-dd hh24:mi:ss')-  to_date(h.taudittime,'yyyy-MM-dd hh24:mi:ss')) 
-                   end
-               end
-               )>(case when regexp_like(m.def15,'^-?\d+(\.\d+)?$') then to_number(m.def15) else 0 end))THEN
+                     WHEN SUBSTR(pob.dbilldate, 1, 10) > SUBSTR(h.vdef7, 1, 10) THEN
                       1
                      ELSE
                       0
@@ -410,9 +334,3 @@ select YEARMTH,
       else deptname end
 )
 where deptname not in ('采购科','工程市场合同部','工程市场部','工程项目中心')
-) tt1
-left join WHH_V_PJDHTSJCSJ_WH tt2
-on tt1.yearmth = tt2.yearmth
-and tt1.deptname = tt2.deptname
-
-select * from WHH_V_PJDHTSJCSJ_WH

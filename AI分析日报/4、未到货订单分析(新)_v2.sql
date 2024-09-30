@@ -4,12 +4,13 @@ select
   tt_1.wlmc, --物料名称
   tt_1.sl, --数量
   tt_1.jldw, --计量单位
-  tt_1.overdays,/*逾期天数*/ 
+  round(tt_1.overdays,2) overdays,/*逾期天数*/ 
   tt_1.cgbm, --采购部门
   tt_1.cgy, --采购员
   tt_1.ydhwrk, --已到货未入库
-  tt_1.dhts, --到货天数
-  tt_1.ddsprq --订单审批日期
+  round(tt_1.dhts,2) dhts, --到货天数
+  tt_1.ddsprq, --订单审批日期
+  CURRENT_TIMESTAMP sjc
 from
 (
 select 
@@ -19,16 +20,16 @@ bdm.name wlmc, --物料名称
 round(pob.nastnum,2) sl, --数量
 mea.name jldw, --计量单位
 substr(poh.vdef7, 0, 10) jhdhrq,--计划到货日期
-/*round(case when regexp_like(substr(poh.vdef7, 0, 10), '^\d{4}-\d{2}-\d{2}$') then
+round(case when regexp_like(substr(poh.vdef7, 0, 10), '^\d{4}-\d{2}-\d{2}$') then
   sysdate - to_date(substr(poh.vdef7, 0, 10), 'yyyy-MM-dd')                             
 else
    0
-end,2) as overdays,\*逾期天数*\ */
-round(sysdate-(to_date(poh.taudittime,'yyyy-MM-dd hh24:mi:ss')+(case when regexp_like(bdm.def15,'^-?\d+(\.\d+)?$') then to_number(bdm.def15) else 0 end)),2) as overdays,/*逾期天数*/ 
+end,2) as overdays,/*逾期天数*/
+/*sysdate-(to_date(poh.taudittime,'yyyy-MM-dd hh24:mi:ss')+(case when regexp_like(bdm.def15,'^-?\d+(\.\d+)?$') then to_number(bdm.def15) else 0 end)) as overdays,*//*逾期天数*/ 
 dept.name cgbm, --采购部门
 psn.name cgy, --采购员
 case when (nvl(arr.dhdxs,0)>0 and icpb.rkdwqz is null) or(icpb.rkdwqz > 0) then 1 else 0 end ydhwrk, --已到货未入库
-round(case when regexp_like(bdm.def15,'^-?\d+(\.\d+)?$') then to_number(bdm.def15) else 0 end,2) dhts, --到货天数
+case when regexp_like(bdm.def15,'^-?\d+(\.\d+)?$') then to_number(bdm.def15) else 0 end dhts, --到货天数
 substr(poh.taudittime,0,10) ddsprq --订单审批日期
 from whh_v_cgddrkqk rkqk
 left join po_order poh

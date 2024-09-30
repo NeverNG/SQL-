@@ -4,16 +4,16 @@ select
     measdocname jldw, --计量单位 
     wrksl sl, --数量
     pk_stockorgname sbdw, --申报单位 
-    round(case when jhzxzq_x = 0 then null
-         when to_date(dbilldate, 'yyyy-MM-dd hh24:mi:ss')+jhzxzq_x >= sysdate then null
-         else sysdate - (to_date(dbilldate, 'yyyy-MM-dd hh24:mi:ss')+jhzxzq_x)
+    round(case when jhzxzq = 0 then null
+         when to_date(dbilldate, 'yyyy-MM-dd hh24:mi:ss')+jhzxzq >= sysdate then null
+         else sysdate - (to_date(dbilldate, 'yyyy-MM-dd hh24:mi:ss')+jhzxzq)
     end,2) yqts, --逾期天数 
     deptname, --采购部门
     psnname, --采购员
     case when (kjht='是' and jgspd='是') then 1 else 0 end yyjgwzd, --已有价格未制单 1是 0否
     case when wwcdd > 0 then 1 else 0  end yzdwspwc, --已制单未审批完成 1是 0否
-    case when jhzxzq_x = 0 then 0
-         when to_date(dbilldate, 'yyyy-MM-dd hh24:mi:ss')+jhzxzq_x >= sysdate then 0
+    case when jhzxzq = 0 then 0
+         when to_date(dbilldate, 'yyyy-MM-dd hh24:mi:ss')+jhzxzq >= sysdate then 0
          else 1
     end sfyq,--是否逾期 1是 0否 
     case when regexp_like(cgts,'^-?\d+(\.\d+)?$') then to_number(cgts) else 0 end cgts,--采购天数
@@ -55,7 +55,15 @@ SELECT p.pk_praybill_b,
        orderb.forderstatus forderstatus,
        orderb.soid,
        orderb.vmcode,
-       jhzxzq_x,
+       case when p.pk_stockorgname = '东风特种汽车有限公司'
+       then 
+           case when jhzq.sborg = '0001AZ100000004DDM1B' then jhzq.jhzxzq
+                when jhzq2.sborg = '0001AZ100000004DDM1B' then jhzq2.jhzxzq
+           else nvl(gysjmb.jhzxzq, '15')
+           end
+       else 
+         nvl(coalesce(jhzq.jhzxzq, jhzq2.jhzxzq, null), 0) 
+       end as jhzxzq,
        cgddsl, --采购订单物资数量
        qgdsl, --请购单物资数量   
        is_send_yuncai,  --是否传云采 
@@ -118,7 +126,7 @@ SELECT p.pk_praybill_b,
                 cgddsl, --采购订单物资数量
                 qgdsl, --请购单物资数量
                 is_send_yuncai,  --是否传云采
-                jhzxzq_x, --计划执行周期
+                --jhzxzq, --计划执行周期
                 cgts
           from (SELECT distinct b.pk_praybill_b pk_praybill_b,
                                  case
@@ -151,7 +159,7 @@ SELECT p.pk_praybill_b,
                                  bd_material_v.def6 cgts, --采购天数
                                  bd_marbasclass.name wlflmc, --物料分类名称
                                  bd_material_v.pk_marbasclass wlflzj,--物料分类主键
-                                 case when regexp_like(bd_material_v.def6,'^-?\d+(\.\d+)?$') then to_number(bd_material_v.def6) else 0 end as jhzxzq_x, --计划执行周期_新
+                                 case when regexp_like(bd_material_v.def6,'^-?\d+(\.\d+)?$') then to_number(bd_material_v.def6) else 0 end as jhzxzq, --计划执行周期_新
                                  bd_measdoc.name measdocname,
                                  b.nastnum,
                                  orderb.pk_order_b,
@@ -312,7 +320,6 @@ SELECT p.pk_praybill_b,
                    cgddsl, --采购订单物资数量
                    qgdsl, --请购单物资数量
                    is_send_yuncai,  --是否传云采
-                   jhzxzq_x, --计划执行周期
                    cgts
                    ) p
   left outer join (select a.vbillcode,
@@ -335,12 +342,36 @@ SELECT p.pk_praybill_b,
                           a.vdef4 soid,
                           a.vdef5 vmcode,
                           a.csourcebid
-
                      from (ybr_twq) a
-
                    ) orderb
     on p.pk_praybill_b = orderb.csourcebid
-    left join 
+  left join (SELECT pk_defdoc, def1 as sborg, def4 wlfl, 
+       def3 wlbm, def6 jhzxzq
+       FROM bd_defdoc
+       WHERE pk_defdoclist = '1001AZ10000000PS4Z1T'
+       and dr = 0
+       and enablestate = 2
+       and def6 <> '~'
+       and def3 <> '~'
+) jhzq on p.pk_srcmaterial = jhzq.wlbm
+left join ( select pk_defdoc,sborg, wlfl, jhzxzq from V_gxh_jhzq2_WH
+) jhzq2 on p.pk_marbasclass = jhzq2.wlfl
+left join (
+     select a.pk_org, a.pk_supplier, a.pk_material, bdm.code,  a.nastorigtaxprice ,a.dvaliddate , '3' as jhzxzq,
+      row_number()over(partition by a.pk_supplier,bdm.code order by a.tcreatetime desc,a.dvaliddate desc)rn
+      from purp_supplierprice a
+      left join org_purchaseorg b
+      on a.pk_org = b.pk_purchaseorg
+      left join bd_supplier bds
+      on bds.pk_supplier = a.pk_supplier
+      left join bd_material bdm
+      on bdm.pk_material = a.pk_material
+      where a.dr = 0 
+      and a.pk_org = '0001AZ100000004DDM1B'  /*东风特种汽车有限公司*/
+      and to_char(sysdate,'yyyy-mm-dd hh24:mi:ss') between a.dvaliddate and a.dinvaliddate
+) gysjmb 
+on p.pk_srcmaterial = gysjmb.pk_material
+left join 
 (
   select csourcebid,
   count(1) wwcdd --未完成订单条数
