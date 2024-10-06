@@ -17,7 +17,8 @@ select
          else 1
     end sfyq,--是否逾期 1是 0否 
     case when regexp_like(cgts,'^-?\d+(\.\d+)?$') then to_number(cgts) else 0 end cgts,--采购天数
-    substr(dmakedate,0,10) zdrq --制单日期
+    substr(dmakedate,0,10) zdrq, --制单日期
+    CURRENT_TIMESTAMP sjc --时间戳
 from (
 SELECT p.pk_praybill_b,
        p.deptname,
