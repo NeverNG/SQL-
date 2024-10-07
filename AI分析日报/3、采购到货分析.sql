@@ -10,7 +10,7 @@ select
   CURRENT_TIMESTAMP sjc --时间戳
 from
 (
-select YEARMTH,
+select --YEARMTH,
        --month|| '月份' month,
        case when deptname = '辅料采购部' then '工程物资部' 
             when deptname = '设备采购部' then '设备物资部'
@@ -123,10 +123,10 @@ select YEARMTH,
             on substr(h.vdef7, 0, 10) between
                (substr(bd_accperiodmonth.BEGINDATE, 0, 10)) and
                (substr(bd_accperiodmonth.ENDDATE, 0, 10))
-          left join bd_accperiodmonth acmonth_2
+          /*left join bd_accperiodmonth acmonth_2
             on to_char(sysdate,'yyyy-MM-dd') between
                (substr(acmonth_2.BEGINDATE, 0, 10)) and
-               (substr(acmonth_2.ENDDATE, 0, 10))
+               (substr(acmonth_2.ENDDATE, 0, 10))*/
           left join org_purchaseorg purchaseorg
             on b.pk_org = purchaseorg.pk_purchaseorg
          where (m.code like 'W%' or m.code like 'S%'  or m.code like 'X%' or m.code like 'Q%')
@@ -135,9 +135,8 @@ select YEARMTH,
            and b.dr = 0
            and bd_supplier.supprop <> 1
            and meta.pk_billtypecode in ('21-Cxx-09','21-Cxx-12','21-Cxx-23','21-Cxx-24')
-           /*and substr(h.vdef7, 0, 10) >= to_char(sysdate-7,'yyyy-MM-dd')
-           and substr(h.vdef7, 0, 10) <= to_char(sysdate,'yyyy-MM-dd')*/
-           AND (SUBSTR(h.vdef7, 0, 10) between substr(acmonth_2.BEGINDATE,0,10) and substr(acmonth_2.ENDDATE,0,10))
+           and substr(h.vdef7, 0, 10) between to_char(sysdate-30,'yyyy-MM-dd') and to_char(sysdate,'yyyy-MM-dd')
+           --AND (SUBSTR(h.vdef7, 0, 10) between substr(acmonth_2.BEGINDATE,0,10) and substr(acmonth_2.ENDDATE,0,10))
            and dept.name in (select name from bd_defdoc where dr = 0 and enablestate = 2 
            and pk_defdoclist = '1001AZ10000000Y6ETNV') --物资供应报表部门集
            AND (b.bstockclose = 'N' OR
@@ -215,10 +214,10 @@ select YEARMTH,
             on substr(h.vdef7, 0, 10) between
                (substr(bd_accperiodmonth.BEGINDATE, 0, 10)) and
                (substr(bd_accperiodmonth.ENDDATE, 0, 10))
-          left join bd_accperiodmonth acmonth_2
+          /*left join bd_accperiodmonth acmonth_2
             on to_char(sysdate,'yyyy-MM-dd') between
                (substr(acmonth_2.BEGINDATE, 0, 10)) and
-               (substr(acmonth_2.ENDDATE, 0, 10))
+               (substr(acmonth_2.ENDDATE, 0, 10))*/
           left join org_purchaseorg purchaseorg
             on b.pk_org = purchaseorg.pk_purchaseorg
          where (m.code like 'W%' or m.code like 'S%' or m.code like 'X%' or m.code like 'Q%')
@@ -227,9 +226,8 @@ select YEARMTH,
            and (h.vdef20 is null or h.vdef20 = '~')
            and b.dr = 0
            and meta.pk_billtypecode in ('21-Cxx-13')
-           /*and substr(h.vdef7, 0, 10) >= to_char(sysdate-7,'yyyy-MM-dd')
-           and substr(h.vdef7, 0, 10) <= to_char(sysdate,'yyyy-MM-dd')*/
-           AND (SUBSTR(h.vdef7, 0, 10) between substr(acmonth_2.BEGINDATE,0,10) and substr(acmonth_2.ENDDATE,0,10))
+           and substr(h.vdef7, 0, 10) between to_char(sysdate-30,'yyyy-MM-dd') and to_char(sysdate,'yyyy-MM-dd')
+           --AND (SUBSTR(h.vdef7, 0, 10) between substr(acmonth_2.BEGINDATE,0,10) and substr(acmonth_2.ENDDATE,0,10))
            and dept.name in (select name from bd_defdoc where dr = 0 and enablestate = 2 
            and pk_defdoclist = '1001AZ10000000Y6ETNV') --物资供应报表部门集
            AND h.forderstatus = '3'
@@ -301,10 +299,10 @@ select YEARMTH,
             on substr(h.vdef7, 0, 10) between
                (substr(bd_accperiodmonth.BEGINDATE, 0, 10)) and
                (substr(bd_accperiodmonth.ENDDATE, 0, 10))
-           left join bd_accperiodmonth acmonth_2
+           /*left join bd_accperiodmonth acmonth_2
             on to_char(sysdate,'yyyy-MM-dd') between
                (substr(acmonth_2.BEGINDATE, 0, 10)) and
-               (substr(acmonth_2.ENDDATE, 0, 10))
+               (substr(acmonth_2.ENDDATE, 0, 10))*/
           left join org_purchaseorg purchaseorg
             on b.pk_org = purchaseorg.pk_purchaseorg
          where (m.code like 'W%' or m.code like 'S%' or m.code like 'X%' or m.code like 'Q%')
@@ -313,9 +311,8 @@ select YEARMTH,
            and (h.vdef20 is null or h.vdef20 = '~')
            and b.dr = 0
            and meta.pk_billtypecode in ('21-Cxx-11')
-           /*and substr(h.vdef7, 0, 10) >= to_char(sysdate-7,'yyyy-MM-dd')
-           and substr(h.vdef7, 0, 10) <= to_char(sysdate,'yyyy-MM-dd')*/
-           AND (SUBSTR(h.vdef7, 0, 10) between substr(acmonth_2.BEGINDATE,0,10) and substr(acmonth_2.ENDDATE,0,10))
+           and substr(h.vdef7, 0, 10) between to_char(sysdate-30,'yyyy-MM-dd') and to_char(sysdate,'yyyy-MM-dd')
+           --AND (SUBSTR(h.vdef7, 0, 10) between substr(acmonth_2.BEGINDATE,0,10) and substr(acmonth_2.ENDDATE,0,10))
            and dept.name in (select name from bd_defdoc where dr = 0 and enablestate = 2 
            and pk_defdoclist = '1001AZ10000000Y6ETNV') --物资供应报表部门集
            AND h.forderstatus = '3'
@@ -327,7 +324,7 @@ select YEARMTH,
                   bd_accperiodmonth.ACCPERIODMTH,
                   dept.name
                   )
- group by YEARMTH, --, month, 
+ group by --YEARMTH, month, 
  case when deptname = '辅料采购部' then '工程物资部' 
       when deptname = '设备采购部' then '设备物资部' 
       when deptname = '辅料物资部' then '工程物资部' 

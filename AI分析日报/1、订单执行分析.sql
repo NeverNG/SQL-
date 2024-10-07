@@ -135,8 +135,8 @@ where prb.dr = 0
   and not(prb.browclose ='Y' and prb.naccumulatenum = 0)
   and (prh.vbillcode!='QG2022031600010457' and bdm.code!='W130102010594')--23年8.28号王锴联系王鸿辉需求
   and (bdm.code  like 'W%' OR bdm.code  like 'S%'OR bdm.code  like 'X%' OR bdm.code  like 'Q%')
-  --and (SUBSTR(prh.dmakedate, 0, 10)  between to_char(sysdate-7,'yyyy-MM-dd') and to_char(sysdate,'yyyy-MM-dd'))
-  AND (SUBSTR(prh.creationtime, 0, 10) between substr(acmonth_2.BEGINDATE,0,10) and substr(acmonth_2.ENDDATE,0,10))
+  and (SUBSTR(prh.dmakedate, 0, 10)  between to_char(sysdate-30,'yyyy-MM-dd') and to_char(sysdate,'yyyy-MM-dd'))
+  --AND (SUBSTR(prh.creationtime, 0, 10) between substr(acmonth_2.BEGINDATE,0,10) and substr(acmonth_2.ENDDATE,0,10))
   and prb.vbdef1 != '~' 
   and bilty.billtypename='物资请购'
   and dept.name in (select name from bd_defdoc where dr = 0 and enablestate = 2
